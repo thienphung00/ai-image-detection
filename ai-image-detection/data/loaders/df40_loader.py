@@ -9,7 +9,7 @@ class DF40DualInputDataset(Dataset):
         self.root_dir_rgb = root_dir_rgb
         self.root_dir_fft = root_dir_fft
         self.rgb_transform = get_transform(model_name="resnet50")
-        self.fft_transform = get_transform(model_name="xception")  # You can tune this for FFT input style
+        self.fft_transform = get_fft_transform(model_name="xception")  # You can tune this for FFT input style
 
         self.samples = []
 
