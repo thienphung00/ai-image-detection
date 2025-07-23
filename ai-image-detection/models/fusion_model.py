@@ -33,8 +33,8 @@ class FusionEnsembleModel(nn.Module):
             nn.Sigmoid() if num_classes == 1 else nn.Softmax(dim=1)
         )
 
-    def forward(self, x):
-        feat_r = self.resnet(x)
-        feat_x = self.xception(x)
-        fused = self.fusion(feat_r, feat_x)
+    def forward(self, rgb_input, fft_input):
+        rgb_feat = self.resnet(rgb_input)
+        fft_feat = self.xception(fft_input)
+        fused = self.attention_fusion(rgb_feat, fft_feat)
         return self.classifier(fused)
