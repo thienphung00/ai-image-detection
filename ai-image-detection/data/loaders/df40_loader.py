@@ -1,52 +1,49 @@
 import os
 from PIL import Image
 from torch.utils.data import Dataset
-from torchvision import transforms
 from config import settings
 from utils.preprocessing import get_transform
 
-
-class DF40Dataset(Dataset):
-    def __init__(self, root_dir, split='train', generator_filter=None, transform=None):
-        """
-        root_dir: path to dataset folder (e.g. DF40_train or DF40_test)
-        split: 'train', 'val', or 'test'
-        generator_filter: if provided, only loads data from specific generator (e.g. 'StyleGAN3')
-        transform: torchvision transforms
-        """
-        self.root_dir = root_dir
-        self.transform = transform or get_transform(model_name="resnet50")
+class DF40DualInputDataset(Dataset):
+    def __init__(self, root_dir_rgb, root_dir_fft, split='train', generator_filter=None):
+        self.root_dir_rgb = root_dir_rgb
+        self.root_dir_fft = root_dir_fft
+        self.rgb_transform = get_transform(model_name="resnet50")
+        self.fft_transform = get_transform(model_name="xception")  # You can tune this for FFT input style
 
         self.samples = []
 
-        generators = [g for g in os.listdir(root_dir) 
-                      if os.path.isdir(os.path.join(root_dir, g))]
+        generators = [g for g in os.listdir(root_dir_rgb)
+                      if os.path.isdir(os.path.join(root_dir_rgb, g))]
+
         for gen_name in generators:
             if generator_filter and gen_name != generator_filter:
                 continue
 
-            gen_path = os.path.join(root_dir, gen_name)
+            gen_path_rgb = os.path.join(root_dir_rgb, gen_name)
+            gen_path_fft = os.path.join(root_dir_fft, gen_name)
 
-            # Case 1: structured domains (e.g. ff/cdf)
-            if os.path.isdir(gen_path) and ('ff' in os.listdir(gen_path) or 'cdf' in os.listdir(gen_path)):
+            if os.path.isdir(gen_path_rgb) and ('ff' in os.listdir(gen_path_rgb) or 'cdf' in os.listdir(gen_path_rgb)):
                 for domain in ['ff', 'cdf']:
-                    domain_path = os.path.join(gen_path, domain)
-                    if not os.path.exists(domain_path): continue
-                    for fname in os.listdir(domain_path):
-                        fpath = os.path.join(domain_path, fname)
-                        self.samples.append((fpath, 1))  # fake label
+                    domain_path_rgb = os.path.join(gen_path_rgb, domain)
+                    domain_path_fft = os.path.join(gen_path_fft, domain)
+                    if not os.path.exists(domain_path_rgb): continue
+                    for fname in os.listdir(domain_path_rgb):
+                        fpath_rgb = os.path.join(domain_path_rgb, fname)
+                        fpath_fft = os.path.join(domain_path_fft, fname)
+                        self.samples.append((fpath_rgb, fpath_fft, 1))  # fake label
 
-            # Case 2: numbered folders (e.g. 001–999)
             else:
-                numbered = [d for d in os.listdir(gen_path) 
-                            if d.isdigit() and os.path.isdir(os.path.join(gen_path, d))]
+                numbered = [d for d in os.listdir(gen_path_rgb)
+                            if d.isdigit() and os.path.isdir(os.path.join(gen_path_rgb, d))]
                 for sub in numbered:
-                    sub_path = os.path.join(gen_path, sub)
-                    for fname in os.listdir(sub_path):
-                        fpath = os.path.join(sub_path, fname)
-                        self.samples.append((fpath, 1))  # fake label
+                    sub_path_rgb = os.path.join(gen_path_rgb, sub)
+                    sub_path_fft = os.path.join(gen_path_fft, sub)
+                    for fname in os.listdir(sub_path_rgb):
+                        fpath_rgb = os.path.join(sub_path_rgb, fname)
+                        fpath_fft = os.path.join(sub_path_fft, fname)
+                        self.samples.append((fpath_rgb, fpath_fft, 1))
 
-        # Split dataset if needed
         if split in ['train', 'val']:
             split_idx = int(0.8 * len(self.samples))
             if split == 'train':
@@ -58,6 +55,16 @@ class DF40Dataset(Dataset):
         return len(self.samples)
 
     def __getitem__(self, idx):
-        fpath, label = self.samples[idx]
-        image = Image.open(fpath).convert("RGB")
-        return self.transform(image), label
+        fpath_rgb, fpath_fft, label = self.samples[idx]
+
+        rgb_image = Image.open(fpath_rgb).convert("RGB")
+        fft_image = Image.open(fpath_fft).convert("RGB")
+
+        rgb_tensor = self.rgb_transform(rgb_image)
+        fft_tensor = self.fft_transform(fft_image)
+
+        return {
+            "rgb": rgb_tensor,
+            "fft": fft_tensor,
+            "label": label
+        }
