@@ -11,7 +11,7 @@ def get_transform(model_name="resnet50"):
                              std=[0.229, 0.224, 0.225])
     ])
 
-def get_fft_transform():
+def get_fft_transform(model_name="xception"):
     return transforms.Compose([
         transforms.Resize((299, 299)),
         transforms.CenterCrop((299, 299)),
