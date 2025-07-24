@@ -10,7 +10,7 @@ class FusionEnsembleModel(nn.Module):
         super(FusionEnsembleModel, self).__init__()
 
         self.resnet = ResNet50FeatureExtractor(pretrained=True, freeze=True)
-        self.vit = ViTFeatureExtractor(freeze=True)
+        self.swin = SwinFeatureExtractor(model_name='microsoft/swinv2-tiny-patch4-window8-256', freeze=True)
 
         # Choose fusion strategy
         if fusion_type == "concat":
@@ -36,6 +36,6 @@ class FusionEnsembleModel(nn.Module):
 
     def forward(self, rgb_input, fft_input):
         rgb_feat = self.resnet(rgb_input)
-        fft_feat =  self.vit(fft_input)
+        fft_feat =  self.swin(fft_input)
         fused = fused = self.fusion(rgb_feat, fft_feat)
         return self.classifier(fused)
