@@ -19,3 +19,14 @@ def get_fft_transform(model_name="xception"):
         transforms.Normalize(mean=[0.5, 0.5, 0.5],  # center-normalized
                              std=[0.5, 0.5, 0.5])   # less biased by ImageNet stats
     ])
+
+
+
+def get_fft_transform(model_name="vit-base-patch16-224"):
+    return transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.CenterCrop((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5],  # center-balanced for FFT magnitude
+                             std=[0.5, 0.5, 0.5])   # neutral to ImageNet biases
+    ])
