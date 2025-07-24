@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from models.resnet50 import ResNet50FeatureExtractor
 from models.xception import XceptionFeatureExtractor
+from models.vit import ViTFeatureExtractor
 from models.fusion_blocks import ConcatFusion, WeightedSumFusion, AttentionFusion
 
 class FusionEnsembleModel(nn.Module):
@@ -9,7 +10,7 @@ class FusionEnsembleModel(nn.Module):
         super(FusionEnsembleModel, self).__init__()
 
         self.resnet = ResNet50FeatureExtractor(pretrained=True, freeze=True)
-        self.xception = XceptionFeatureExtractor(pretrained=True, freeze=True)
+        self.vit = ViTFeatureExtractor(freeze=True)
 
         # Choose fusion strategy
         if fusion_type == "concat":
@@ -35,6 +36,6 @@ class FusionEnsembleModel(nn.Module):
 
     def forward(self, rgb_input, fft_input):
         rgb_feat = self.resnet(rgb_input)
-        fft_feat = self.xception(fft_input)
-        fused = self.attention_fusion(rgb_feat, fft_feat)
+        fft_feat =  self.vit(fft_input)
+        fused = fused = self.fusion(rgb_feat, fft_feat)
         return self.classifier(fused)
