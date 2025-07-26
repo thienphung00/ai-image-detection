@@ -1,48 +1,29 @@
-import os
+import os, cv2, json
 import numpy as np
-from PIL import Image
-import cv2
+from pathlib import Path
+from error_handlers.validate_fft import is_valid_fft
 
-def compute_fft_magnitude(image: Image.Image) -> Image.Image:
-    # Convert to grayscale for frequency analysis
-    gray = np.array(image.convert("L"))
+def fft_transform(frame_path):
+    img = cv2.imread(frame_path, cv2.IMREAD_GRAYSCALE)
+    fft = np.fft.fft2(img)
+    fft_shift = np.fft.fftshift(fft)
+    magnitude = np.abs(fft_shift)
+    return magnitude
 
-    # Apply FFT
-    f = np.fft.fft2(gray)
-    fshift = np.fft.fftshift(f)
-    magnitude = 20 * np.log(np.abs(fshift) + 1e-8)
+def process_fft_from_json(json_path, save_root):
+    with open(json_path, 'r') as f:
+        data = json.load(f)
 
-    # Normalize to 0–255 and convert to 3 channels
-    normalized = cv2.normalize(magnitude, None, 0, 255, cv2.NORM_MINMAX)
-    fft_rgb = cv2.cvtColor(normalized.astype(np.uint8), cv2.COLOR_GRAY2RGB)
-
-    return Image.fromarray(fft_rgb)
-
-def process_folder(input_dir: str, output_dir: str):
-    for root, _, files in os.walk(input_dir):
-        for file in files:
-            if file.lower().endswith(('.png', '.jpg', '.jpeg')):
-                input_path = os.path.join(root, file)
-                rel_path = os.path.relpath(input_path, input_dir)
-                output_path = os.path.join(output_dir, rel_path)
-
-                # Ensure output folder exists
-                os.makedirs(os.path.dirname(output_path), exist_ok=True)
-
-                try:
-                    image = Image.open(input_path)
-                    fft_image = compute_fft_magnitude(image)
-                    fft_image.save(output_path)
-                except Exception as e:
-                    print(f"Error processing {input_path}: {e}")
-
-if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Apply FFT and save frequency-domain images")
-    parser.add_argument("--input_dir", type=str, required=True, help="Path to original RGB images")
-    parser.add_argument("--output_dir", type=str, required=True, help="Path to save FFT-transformed images")
-
-    args = parser.parse_args()
-    process_folder(args.input_dir, args.output_dir)
-
+    for dataset_name in data:
+        for category in data[dataset_name]:
+            for split in data[dataset_name][category]:
+                for compression in data[dataset_name][category][split]:
+                    for video, info in data[dataset_name][category][split][compression].items():
+                        fft_folder = Path(save_root) / dataset_name / category / split / compression / video
+                        fft_folder.mkdir(parents=True, exist_ok=True)
+                        for frame_path in info['frames']:
+                            fft_data = fft_transform(frame_path)
+                            if not is_valid_fft(fft_data):
+                                continue
+                            filename = Path(frame_path).stem + '.npy'
+                            np.save(fft_folder / filename, fft_data)
