@@ -6,6 +6,7 @@ import json
 import yaml
 import pandas as pd
 from pathlib import Path
+import sys
 
 
 def generate_dataset_file(dataset_name, dataset_root_path, output_file_path, compression_level='c23', perturbation = 'end_to_end'):
@@ -692,19 +693,33 @@ def generate_dataset_file(dataset_name, dataset_root_path, output_file_path, com
     print(f"{dataset_name}.json generated successfully.")
 
 if __name__ == '__main__':
-    # from config.yaml load parameters
+
     yaml_path = './config.yaml'
-    # open the yaml file
     try:
         with open(yaml_path, 'r') as f:
             config = yaml.safe_load(f)
     except yaml.parser.ParserError as e:
         print("YAML file parsing error:", e)
+        sys.exit(1)
+    except FileNotFoundError:
+        print(f"Could not find config file at {yaml_path}")
+        sys.exit(1)
 
-    dataset_name = config['rearrange']['dataset_name']['default']
-    dataset_root_path = config['rearrange']['dataset_root_path']['default']
-    output_file_path = config['rearrange']['output_file_path']['default']
-    comp = config['rearrange']['comp']['default']
-    perturbation = config['rearrange']['perturbation']['default']
-    # Call the generate_dataset_file function
+    dataset_name = config['rearrange']['dataset_name'].get('default', 'FaceForensics++')
+    
+    # S3 paths from config.yaml
+    # Example: 's3://df40-sagemaker-thienphung/cdf_real'
+    dataset_root_path = config['rearrange']['dataset_root_path'].get('default')
+    output_file_path = config['rearrange']['output_file_path'].get('default', 'data/metadata/dataset.json')
+
+    comp = config['rearrange']['comp'].get('default', 'c23')
+    perturbation = config['rearrange']['perturbation'].get('default', 'end_to_end')
+
+    print(f"[INFO] Starting dataset restructuring for {dataset_name}")
+    print(f"[INFO] Dataset root path: {dataset_root_path}")
+    print(f"[INFO] Output path: {output_file_path}")
+
+    # Execute dataset rearrangement
     generate_dataset_file(dataset_name, dataset_root_path, output_file_path, comp, perturbation)
+
+    print("[✅] JSON metadata successfully generated.")
