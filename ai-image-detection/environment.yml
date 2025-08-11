@@ -1,19 +1,38 @@
 name: ai_detection_env
 channels:
-  - defaults
   - conda-forge
+  - defaults
+
 dependencies:
   - python=3.10
-  - pytorch
-  - torchvision
+  - pip
+  - numpy
+  - pandas
   - scikit-learn
   - matplotlib
-  - pillow
-  - opencv-python
+  - seaborn
   - tqdm
-  - pip
+  - pillow
+  - imageio
+  - h5py
+  - jupyterlab
+  - ipykernel
+  - pytorch
+  - torchvision
+  - torchaudio
+  - cudatoolkit=11.8  # Adjust based on your GPU driver
+  - ffmpeg
+  - dlib
+  - cython
+
   - pip:
-      - timm
-      - huggingface_hub
-      - datasets
-      - gdown
+    - opencv-python
+    - opencv-contrib-python
+    - face-alignment
+    - mediapipe
+    - einops
+    - albumentations
+    - jsonlines
+    - scipy
+    - scikit-image
+    - imutils
