@@ -1,4 +1,4 @@
-name: df40-env
+name: ai_detection_env
 channels:
   - defaults
   - conda-forge
@@ -9,7 +9,7 @@ dependencies:
   - scikit-learn
   - matplotlib
   - pillow
-  - opencv
+  - opencv-python
   - tqdm
   - pip
   - pip:
